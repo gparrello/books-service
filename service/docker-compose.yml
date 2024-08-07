@@ -1,4 +1,9 @@
-# TODO: change stack to point to master
+---
+networks:
+  default:
+  ingress:
+    external: true
+
 volumes:
   downloads:
   calibre_config:
@@ -8,6 +13,7 @@ volumes:
 
 services:
   calibre:
+    restart: unless-stopped
     image: lscr.io/linuxserver/calibre:latest
     container_name: calibre
     security_opt:
@@ -21,10 +27,11 @@ services:
       - calibre_config:/config
       - downloads:/config/downloads
       - /data:/data
+    networks:
+      - default
     ports:
       - 8080:8080
       - 8081:8081
-    restart: unless-stopped
     dns:
       - 10.80.0.2
     healthcheck:
@@ -34,6 +41,7 @@ services:
       retries: 3
     
   calibre-web:
+    restart: unless-stopped
     image: lscr.io/linuxserver/calibre-web:latest
     container_name: calibre-web
     environment:
@@ -45,9 +53,11 @@ services:
     volumes:
       - calibre_web_config:/config
       - /data/books/library:/books
+    networks:
+      - default
+      - ingress
     ports:
       - 8083:8083
-    restart: unless-stopped
     dns:
       - 10.80.0.2
     healthcheck:
@@ -55,13 +65,20 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      caddy: books.karpincho.duckdns.org
+      caddy.reverse_proxy: "{{upstreams 8083}}"
 
   readarr:
     restart: unless-stopped
     container_name: readarr
     image: ghcr.io/hotio/readarr
+    networks:
+      - default
     ports:
       - "8082:8787"
+    dns:
+      - 10.80.0.2
     environment:
       - PUID=1000
       - PGID=1000
@@ -70,8 +87,6 @@ services:
     volumes:
       - readarr_config:/config
       - /data:/data
-    dns:
-      - 10.80.0.2
     healthcheck:
       test: curl -sS http://127.0.0.1:8787 || exit 1
       interval: 30s
@@ -80,10 +95,13 @@ services:
   
   # https://github.com/jsavargas/telethon_downloader
   telethon_downloader:
+    restart: unless-stopped
     image: jsavargas/telethon_downloader
     container_name: telethon-downloader
-    restart: unless-stopped
-    network_mode: host
+    networks:
+      - default
+    dns:
+      - 10.80.0.2
     environment:
       - TZ=Europe/Madrid
       - PUID=1000
@@ -98,5 +116,3 @@ services:
       - telethon_config:/config
       - downloads:/download
       # - /path/to/download/torrent/watch:/watch
-    dns:
-      - 10.80.0.2
