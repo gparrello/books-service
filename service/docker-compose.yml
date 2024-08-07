@@ -49,7 +49,7 @@ services:
       - PGID=1000
       - TZ=Europe/Madrid
       - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
-      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+      # - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
     volumes:
       - calibre_web_config:/config
       - /data/books/library:/books
